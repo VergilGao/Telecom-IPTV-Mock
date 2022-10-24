@@ -4,30 +4,12 @@ from time import sleep
 from typing import Tuple
 import requests
 from urllib.parse import urlparse
-from Crypto.Cipher import DES
+from utils import getAuthenticator
 from config import StbConfig, CommonConfig
-from hashlib import md5
 from collections import namedtuple
 from storage import Storage
 import re
 import os
-
-def pkcs7(s: str) -> str:
-    bs: int = DES.block_size
-    return s + (bs - len(s) % bs) * chr(bs - len(s) % bs)
-
-
-def getAuthenticator(userid: str, password: str, stbid: str, mac: str, encry_token: str, salt: str) -> str:
-    salty: bytes = (password + salt).encode('ascii')
-    payload: bytes = pkcs7("99999${token}${user}${stb}$127.0.0.1${mac}$$CTC".format(
-        token=encry_token,
-        user=userid,
-        stb=stbid,
-        mac=mac
-    )).encode('ascii')
-
-    key: bytes = bytes(md5(salty).hexdigest()[:8], encoding='ascii')
-    return (DES.new(key, DES.MODE_ECB).encrypt(payload)).hex().upper()
 
 
 def stb_login(storage: Storage, common_config: CommonConfig, config: StbConfig) -> bool:
@@ -164,10 +146,8 @@ def stb_login(storage: Storage, common_config: CommonConfig, config: StbConfig) 
     print("频道列表获取完成，当前获取到{count}个频道".format(count=len(matches)))
 
     re_channel_id = re.compile(r'ChannelID="([0-9]+?)"')
-    re_channel_name = re.compile(r'ChannelName="(.+?)"')
-    re_user_channel_id = re.compile(r'UserChannelID="([0-9]+?)"')
     re_rstp_url = re.compile(r'ChannelURL=".+?\|(rtsp.+?)"')
-    re_igmp_url = re.compile(r'ChannelURL="(igmp.+?)\|.+?"')
+    re_igmp_url = re.compile(r'ChannelURL="igmp://(.+?)\|.+?"')
 
     filter = len(config.channels) > 0
 
@@ -185,7 +165,7 @@ def stb_login(storage: Storage, common_config: CommonConfig, config: StbConfig) 
                 channel_name = channel_info.name
                 channel_group = channel_info.group
                 user_number = channel_info.user_number
-                rtsp_url = re_rstp_url.findall(line)[0]
+                rtsp_url = re_rstp_url.findall(line)[0].replace('PLTV', 'TVOD').replace('zoneoffset=480', 'zoneoffset=0')
                 igmp_url = re_igmp_url.findall(line)[0]
                 logo = channel_info.logo
             except:
@@ -205,28 +185,20 @@ def stb_login(storage: Storage, common_config: CommonConfig, config: StbConfig) 
 
     print("第六步，生成播放列表")
 
-    with open(os.path.join(common_config.data_dir, 'igmp.m3u'), 'w', encoding='utf-8') as igmp_file:
-        with open(os.path.join(common_config.data_dir, 'rstp.m3u'), 'w', encoding='utf-8') as rstp_file:
-            igmp_file.write('#EXTM3U' + '\n')
-            rstp_file.write('#EXTM3U' + '\n')
-            for channel_info in channel_infos:
-                info_line = '#EXTINF:-1 tvg-id="{channel_id}" tvg-name="{channel_name}" tvg-chno="{user_number}" tvg-logo="{logo}" group-title="{group_name}", {channel_name}\n'.format(
-                    channel_id=channel_info.id,
-                    user_number=channel_info.user_number,
-                    channel_name=channel_info.name,
-                    group_name=channel_info.group,
-                    logo=channel_info.logo
-                )
-                igmp_file.write(info_line)
-                rstp_file.write(info_line)
-
-                igmp_file.write("{url}/{proto}/{igmp}\n".format(
-                    url=common_config.udpxy_url,
-                    proto=common_config.udpxy_protocal,
-                    igmp=channel_info.igmp_url
-                ))
-
-                rstp_file.write("{rstp}\n".format(rstp=channel_info.rtsp_url))
+    with open(os.path.join(common_config.data_dir, 'iptv.m3u'), 'w', encoding='utf-8') as iptv_file:
+        iptv_file.write('#EXTM3U\n')
+        for channel_info in channel_infos:
+            iptv_file.write('#EXTINF:0 tvg-id="{channel_id}@iptv" tvg-name="{channel_name}" tvg-chno="{user_number}" tvg-logo="{logo}" group-title="{group_name}" catchup="default" catchup-source="{rstp}&playseek={{utc:YmdHMS}}-${{end:YmdHMS}}", {channel_name}\n{url}/{proto}/{igmp}\n'.format(
+                channel_id=channel_info.id,
+                user_number=channel_info.user_number,
+                channel_name=channel_info.name,
+                group_name=channel_info.group,
+                logo=channel_info.logo,
+                url=common_config.udpxy_url,
+                proto=common_config.udpxy_protocal,
+                igmp=channel_info.igmp_url,
+                rstp=channel_info.rtsp_url
+            ))
 
     print("播放列表已生成")
 
@@ -307,7 +279,8 @@ def stb_login(storage: Storage, common_config: CommonConfig, config: StbConfig) 
             except:
                 continue
 
-    today = datetime.now(tz=timezone(timedelta(hours=+8))) # 兼容未设定timezone或timezone不为东八区的情况
+    # 兼容未设定timezone或timezone不为东八区的情况
+    today = datetime.now(tz=timezone(timedelta(hours=+8)))
     regex = re.compile("[0-9]{8}=(\{.+\});")
 
     print("第九步，获取节目单")

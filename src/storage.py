@@ -110,8 +110,8 @@ CREATE UNIQUE INDEX unique_index_channel_date on overview (channel_id, date);
         start_date = start.strftime('%Y-%m-%d')
         end__date = end.strftime('%Y-%m-%d')
 
-        channels: list[tuple[int, str]] = []
-        programmes: list[tuple[int, str, datetime, datetime]] = []
+        channels: list[tuple[str, str]] = []
+        programmes: list[tuple[str, str, datetime, datetime]] = []
 
         with sqlite3.connect(self.__file) as connection:
             try:
@@ -126,7 +126,7 @@ CREATE UNIQUE INDEX unique_index_channel_date on overview (channel_id, date);
 
                 for line in lines:
                     channel_id = line[0]
-
+                    
                     result = c.execute('SELECT id,channel_name FROM overview WHERE date >= \'{start}\' and date < \'{end}\' and channel_id = \'{channel_id}\' order by date asc'.format(
                         start=start_date, end=end__date, channel_id=channel_id)).fetchall()
 
@@ -134,6 +134,7 @@ CREATE UNIQUE INDEX unique_index_channel_date on overview (channel_id, date);
                         pass
 
                     channel_name = result[len(result) - 1][1]
+                    channel_id = '{}@iptv'.format(channel_id)
 
                     channels.append((channel_id, channel_name))
 
@@ -160,7 +161,7 @@ CREATE UNIQUE INDEX unique_index_channel_date on overview (channel_id, date);
 
         for channel_id, channel_name in channels:
             channel_element = SubElement(root, 'channel')
-            channel_element.attrib['id'] = str(channel_id)
+            channel_element.attrib['id'] = channel_id
 
             display_name_element = SubElement(channel_element, 'display-name')
             display_name_element.attrib['lang'] = 'zh'
@@ -170,7 +171,7 @@ CREATE UNIQUE INDEX unique_index_channel_date on overview (channel_id, date);
             program_element = SubElement(root, 'programme')
             program_element.attrib['start'] = start
             program_element.attrib['stop'] = stop
-            program_element.attrib['channel'] = str(channel_id)
+            program_element.attrib['channel'] = channel_id
             title_element = SubElement(program_element, 'title')
             title_element.attrib['lang'] = 'zh'
             title_element.text = title
