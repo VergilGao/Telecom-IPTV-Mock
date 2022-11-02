@@ -2,14 +2,11 @@ import sqlite3
 from hashlib import md5
 from datetime import datetime
 from os import path
-import json
+from json import loads as json_loads
 from xml.etree.ElementTree import Element
 from xml.etree.ElementTree import SubElement
 from xml.etree.ElementTree import ElementTree
 from utils import pretty_xml
-
-
-
 
 class Storage:
     def __init__(self, file_path: str):
@@ -53,7 +50,7 @@ CREATE UNIQUE INDEX unique_index_channel_date on overview (channel_id, date);
     def save(self, channel_id: int, channel_name: str, epg_date: datetime, json_str: str):
         hash = md5(json_str.encode('utf-8')).hexdigest()
 
-        programs: list = json.loads(json_str).get('programs')
+        programs: list = json_loads(json_str).get('programs')
         if programs == None:
             return
 

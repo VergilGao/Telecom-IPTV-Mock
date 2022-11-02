@@ -1,5 +1,4 @@
 [common]
-data=/data
 udpxy_url=http://127.0.0.1:4022
 udpxy_protocal=rtp
 [iptv]

@@ -2,13 +2,12 @@ from configparser import ConfigParser
 from collections import Counter, namedtuple
 
 ChannelConfig = namedtuple(
-    "ChannelConfig",
-    "id,user_number,name,group,logo")
+    'ChannelConfig',
+    'id,user_number,name,group,logo')
 
-CommonConfig = namedtuple(
-    "CommonConfig",
-    'data_dir,udpxy_url,udpxy_protocal')
-
+UdpxyConfig = namedtuple(
+    'UdpxyConfig',
+    'udpxy_url,udpxy_protocal')
 
 class StbConfig:
     server: str
@@ -39,7 +38,7 @@ class StbConfig:
     channels: dict[int, ChannelConfig] = {}
 
 
-def read_stb_config(path: str) -> tuple[CommonConfig, StbConfig]:
+def read_stb_config(path: str) -> tuple[UdpxyConfig, StbConfig]:
     config = StbConfig()
 
     parser = ConfigParser()
@@ -49,7 +48,6 @@ def read_stb_config(path: str) -> tuple[CommonConfig, StbConfig]:
     sections.remove('common')
     sections.remove('iptv')
 
-    data_dir = parser.get('common', 'data', raw=True).strip()
     udpxy_url = parser.get('common', 'udpxy_url', raw=True).strip()
     udpxy_orotocal = parser.get('common', 'udpxy_protocal', raw=True).strip()
 
@@ -86,7 +84,7 @@ def read_stb_config(path: str) -> tuple[CommonConfig, StbConfig]:
 
     for id, count in repeat.items():
         if count > 1:
-            print("项 {id} 重复".format(id=id))
+            print('项 {id} 重复'.format(id=id))
 
     for section in sections:
         id: int = int(section)
@@ -100,4 +98,4 @@ def read_stb_config(path: str) -> tuple[CommonConfig, StbConfig]:
 
         config.channels[id] = channel
 
-    return CommonConfig(data_dir=data_dir, udpxy_url=udpxy_url, udpxy_protocal=udpxy_orotocal), config
+    return UdpxyConfig(udpxy_url=udpxy_url, udpxy_protocal=udpxy_orotocal), config

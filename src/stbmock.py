@@ -5,14 +5,14 @@ from typing import Tuple
 import requests
 from urllib.parse import urlparse
 from utils import getAuthenticator
-from config import StbConfig, CommonConfig
+from config import StbConfig, UdpxyConfig
 from collections import namedtuple
 from storage import Storage
+from os import path
 import re
-import os
 
 
-def stb_login(storage: Storage, common_config: CommonConfig, config: StbConfig) -> bool:
+def stb_login(storage: Storage, data_dir: str, udpxy_config: UdpxyConfig, config: StbConfig) -> bool:
     headers: dict = {
         'User-Agent': config.ua
     }
@@ -145,9 +145,9 @@ def stb_login(storage: Storage, common_config: CommonConfig, config: StbConfig) 
 
     print("频道列表获取完成，当前获取到{count}个频道".format(count=len(matches)))
 
-    re_channel_id = re.compile(r'ChannelID="([0-9]+?)"')
-    re_rstp_url = re.compile(r'ChannelURL=".+?\|(rtsp.+?)"')
-    re_igmp_url = re.compile(r'ChannelURL="igmp://(.+?)\|.+?"')
+    re.channel_id = re.compile(r'ChannelID="([0-9]+?)"')
+    re.rstp_url = re.compile(r'ChannelURL=".+?\|(rtsp.+?)"')
+    re.igmp_url = re.compile(r'ChannelURL="igmp://(.+?)\|.+?"')
 
     filter = len(config.channels) > 0
 
@@ -160,13 +160,14 @@ def stb_login(storage: Storage, common_config: CommonConfig, config: StbConfig) 
     if filter:
         for line in matches:
             try:
-                source_id = int(re_channel_id.findall(line)[0])
+                source_id = int(re.channel_id.findall(line)[0])
                 channel_info = config.channels[source_id]
                 channel_name = channel_info.name
                 channel_group = channel_info.group
                 user_number = channel_info.user_number
-                rtsp_url = re_rstp_url.findall(line)[0].replace('PLTV', 'TVOD').replace('zoneoffset=480', 'zoneoffset=0')
-                igmp_url = re_igmp_url.findall(line)[0]
+                rtsp_url = re.rstp_url.findall(line)[0].replace(
+                    'PLTV', 'TVOD').replace('zoneoffset=480', 'zoneoffset=0')
+                igmp_url = re.igmp_url.findall(line)[0]
                 logo = channel_info.logo
             except:
                 continue
@@ -185,7 +186,7 @@ def stb_login(storage: Storage, common_config: CommonConfig, config: StbConfig) 
 
     print("第六步，生成播放列表")
 
-    with open(os.path.join(common_config.data_dir, 'iptv.m3u'), 'w', encoding='utf-8') as iptv_file:
+    with open(path.join(data_dir, 'iptv.m3u'), 'w', encoding='utf-8') as iptv_file:
         iptv_file.write('#EXTM3U\n')
         for channel_info in channel_infos:
             iptv_file.write('#EXTINF:0 tvg-id="{channel_id}@iptv" tvg-name="{channel_name}" tvg-chno="{user_number}" tvg-logo="{logo}" group-title="{group_name}" catchup="default" catchup-source="{rstp}&playseek={{utc:YmdHMS}}-${{end:YmdHMS}}", {channel_name}\n{url}/{proto}/{igmp}\n'.format(
@@ -194,8 +195,8 @@ def stb_login(storage: Storage, common_config: CommonConfig, config: StbConfig) 
                 channel_name=channel_info.name,
                 group_name=channel_info.group,
                 logo=channel_info.logo,
-                url=common_config.udpxy_url,
-                proto=common_config.udpxy_protocal,
+                url=udpxy_config.udpxy_url,
+                proto=udpxy_config.udpxy_protocal,
                 igmp=channel_info.igmp_url,
                 rstp=channel_info.rtsp_url
             ))
@@ -318,5 +319,5 @@ def stb_login(storage: Storage, common_config: CommonConfig, config: StbConfig) 
 
     print("最终步，生成epg电子节目单")
 
-    storage.epg_generator(os.path.join(common_config.data_dir, 'epg.xml'),
+    storage.epg_generator(path.join(data_dir, 'epg.xml'),
                           today + timedelta(days=-7), today + timedelta(days=2))
