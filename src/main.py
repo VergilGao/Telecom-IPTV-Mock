@@ -1,6 +1,7 @@
 from stbmock import stb_login
 from config import read_stb_config
 from os import path
+import os
 from storage import Storage
 from argparse import ArgumentParser
 
@@ -13,10 +14,10 @@ def main(config_dir: str, data_dir: str) -> None:
 
         storage = Storage(path.join(config_dir, 'epg.db'))  # 数据库都存 config 里
         result = stb_login(storage, data_dir, udpxy_config, stb_config)
-        exit(0 if result else 1)
+        os._exit(0 if result else 1)
     except Exception as e:
         print(e)
-        exit(1)
+        os._exit(1)
 
 
 if __name__ == '__main__':
