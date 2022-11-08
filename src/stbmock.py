@@ -146,7 +146,7 @@ def stb_login(storage: Storage, data_dir: str, udpxy_config: UdpxyConfig, config
     print("频道列表获取完成，当前获取到{count}个频道".format(count=len(matches)))
 
     re.channel_id = re.compile(r'ChannelID="([0-9]+?)"')
-    re.rstp_url = re.compile(r'ChannelURL=".+?\|(rtsp.+?)"')
+    re.rtsp_url = re.compile(r'ChannelURL=".+?\|(rtsp.+?)"')
     re.igmp_url = re.compile(r'ChannelURL="igmp://(.+?)\|.+?"')
 
     filter = len(config.channels) > 0
@@ -165,7 +165,7 @@ def stb_login(storage: Storage, data_dir: str, udpxy_config: UdpxyConfig, config
                 channel_name = channel_info.name
                 channel_group = channel_info.group
                 user_number = channel_info.user_number
-                rtsp_url = re.rstp_url.findall(line)[0].replace(
+                rtsp_url = re.rtsp_url.findall(line)[0].replace(
                     'PLTV', 'TVOD').replace('zoneoffset=480', 'zoneoffset=0')
                 igmp_url = re.igmp_url.findall(line)[0]
                 logo = channel_info.logo
@@ -186,10 +186,10 @@ def stb_login(storage: Storage, data_dir: str, udpxy_config: UdpxyConfig, config
 
     print("第六步，生成播放列表")
 
-    with open(path.join(data_dir, 'iptv.m3u'), 'w', encoding='utf-8') as iptv_file:
-        iptv_file.write('#EXTM3U\n')
+    with open(path.join(data_dir, 'iptv.m3u'), 'w', encoding='utf-8') as m3u_file:
+        m3u_file.write('#EXTM3U\n')
         for channel_info in channel_infos:
-            iptv_file.write('#EXTINF:0 tvg-id="{channel_id}@iptv" tvg-name="{channel_name}" tvg-chno="{user_number}" tvg-logo="{logo}" group-title="{group_name}" catchup="default" catchup-source="{rstp}&playseek={{utc:YmdHMS}}-${{end:YmdHMS}}", {channel_name}\n{url}/{proto}/{igmp}\n'.format(
+            m3u_file.write('#EXTINF:0 tvg-id="{channel_id}@iptv" tvg-name="{channel_name}" tvg-chno="{user_number}" tvg-logo="{logo}" group-title="{group_name}" catchup="default" catchup-source="{rtsp}&playseek={{utc:YmdHMS}}-${{end:YmdHMS}}", {channel_name}\n{url}/{proto}/{igmp}\n'.format(
                 channel_id=channel_info.id,
                 user_number=channel_info.user_number,
                 channel_name=channel_info.name,
@@ -198,8 +198,9 @@ def stb_login(storage: Storage, data_dir: str, udpxy_config: UdpxyConfig, config
                 url=udpxy_config.udpxy_url,
                 proto=udpxy_config.udpxy_protocal,
                 igmp=channel_info.igmp_url,
-                rstp=channel_info.rtsp_url
+                rtsp=channel_info.rtsp_url
             ))
+                
 
     print("播放列表已生成")
 
