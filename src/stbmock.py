@@ -182,6 +182,8 @@ def stb_login(storage: Storage, data_dir: str, udpxy_config: UdpxyConfig, config
                     rtsp_url=rtsp_url
                 ))
 
+    channel_infos.sort(key=lambda i:int(i.user_number))
+
     print("频道信息提取完成，提取了{count}个频道".format(count=len(channel_infos)))
 
     print("第六步，生成播放列表")
