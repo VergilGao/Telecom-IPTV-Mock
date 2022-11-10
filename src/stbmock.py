@@ -202,7 +202,7 @@ def stb_login(storage: Storage, data_dir: str, udpxy_config: UdpxyConfig, config
                 igmp=channel_info.igmp_url,
                 rtsp=channel_info.rtsp_url
             ))
-                
+
 
     print("播放列表已生成")
 
@@ -265,6 +265,8 @@ def stb_login(storage: Storage, data_dir: str, udpxy_config: UdpxyConfig, config
         ).replace(
             'realNum', '"realNum"'
         ).replace(
+            'playNum', '"playNum"'
+        ).replace(
             'mediaId', '"mediaId"'
         ).replace(
             'is4k', '"is4k"'
@@ -272,16 +274,21 @@ def stb_login(storage: Storage, data_dir: str, udpxy_config: UdpxyConfig, config
             'vip', '"vip"'
         ).replace(
             ',]', ']'
+        ).replace(
+            ',}]', '}]'
         )
 
-        dataList: list = json.loads(match)
-        for data in dataList:
-            try:
-                channel_config = config.channels[data["realNum"]]
-                channel_ids.append(
-                    (channel_config.name, int(data["realNum"]), data["channelId"]))
-            except:
-                continue
+        try:
+            dataList: list = json.loads(match)
+            for data in dataList:
+                try:
+                    channel_config = config.channels[data["realNum"]]
+                    channel_ids.append(
+                        (channel_config.name, int(data["realNum"]), data["channelId"]))
+                except:
+                    continue
+        except json.JSONDecodeError as e:
+            print("Json 解码失败，原始字符串：{0}".format(e.doc))
 
     # 兼容未设定timezone或timezone不为东八区的情况
     today = datetime.now(tz=timezone(timedelta(hours=+8)))
