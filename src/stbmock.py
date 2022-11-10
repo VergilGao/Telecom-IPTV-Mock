@@ -33,18 +33,22 @@ def stb_login(storage: Storage, data_dir: str, udpxy_config: UdpxyConfig, config
 
     print("第二步，获取EncryptToken")
 
-    response = requests.post(
-        "http://{server}/EPG/jsp/authLoginHWCTC.jsp".format(
-            server=server),
-        data={
-            'UserID': config.userid,
-            'VIP': config.vip
-        },
-        headers=headers)
+    for i in range(3):
+        response = requests.post(
+            "http://{server}/EPG/jsp/authLoginHWCTC.jsp".format(
+                server=server),
+            data={
+                'UserID': config.userid,
+                'VIP': config.vip
+            },
+            headers=headers)
 
-    if not response.ok:
-        print("获取EncryptToken失败")
-        return False
+        if not response.ok:
+            print("获取EncryptToken失败, 尝试次数 {0}/3".format(i + 1))
+            if i == 3:
+                return False
+            print("等待20秒后再次尝试")
+            sleep(20)
 
     tokenMatch: list = re.findall(
         r'var EncryptToken = "([0-9A-F]{32}?)";', response.text)
