@@ -195,7 +195,7 @@ def stb_login(storage: Storage, data_dir: str, udpxy_config: UdpxyConfig, config
     with open(path.join(data_dir, 'iptv.m3u'), 'w', encoding='utf-8') as m3u_file:
         m3u_file.write('#EXTM3U\n')
         for channel_info in channel_infos:
-            m3u_file.write('#EXTINF:0 tvg-id="{channel_id}@iptv" tvg-name="{channel_name}" tvg-chno="{user_number}" tvg-logo="{logo}" group-title="{group_name}" catchup="default" catchup-source="{rtsp}&playseek={{utc:YmdHMS}}-${{end:YmdHMS}}", {channel_name}\n{url}/{proto}/{igmp}\n'.format(
+            m3u_file.write('#KODIPROP:inputstream=inputstream.ffmpegdirect\n#EXTINF:0 tvg-id="{channel_id}@iptv" tvg-name="{channel_name}" tvg-chno="{user_number}" tvg-logo="{logo}" group-title="{group_name}" catchup="default" catchup-source="{rtsp}&playseek={{utc:YmdHMS}}-${{end:YmdHMS}}", {channel_name}\n{url}/{proto}/{igmp}\n'.format(
                 channel_id=channel_info.id,
                 user_number=channel_info.user_number,
                 channel_name=channel_info.name,
