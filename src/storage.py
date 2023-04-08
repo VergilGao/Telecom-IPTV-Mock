@@ -8,6 +8,7 @@ from xml.etree.ElementTree import SubElement
 from xml.etree.ElementTree import ElementTree
 from utils import pretty_xml
 
+
 class Storage:
     def __init__(self, file_path: str):
         if not path.isfile(file_path):
@@ -59,26 +60,25 @@ CREATE UNIQUE INDEX unique_index_channel_date on overview (channel_id, date);
                 c = connection.cursor()
                 epg_date = epg_date.strftime('%Y-%m-%d')
 
-                result = c.execute('SELECT id,hash FROM overview WHERE date=\'{date}\' AND channel_id=\'{channel_id}\''.format(
-                    date=epg_date, channel_id=channel_id)).fetchone()
+                result = c.execute(
+                    f'SELECT id,hash FROM overview WHERE date=\'{epg_date}\' AND channel_id=\'{channel_id}\'').fetchone()
                 if result != None:
                     id, old_hash = result
 
                     if hash == old_hash:
-                        print("频道{channel}时间为{date}的节目单已缓存，跳过更新".format(
-                            channel=channel_name, date=epg_date))
+                        print(f"频道{channel_name}时间为{epg_date}的节目单已缓存，跳过更新")
                         return
 
-                    c.execute('UPDATE overview SET hash=\'{hash}\' WHERE id=\'{id}\''.format(
-                        hash=hash, id=id))
                     c.execute(
-                        'DELETE FROM programme WHERE overview_id = \'{id}\''.format(id=id))
+                        f'UPDATE overview SET hash=\'{hash}\' WHERE id=\'{id}\'')
+                    c.execute(
+                        f'DELETE FROM programme WHERE overview_id = \'{id}\'')
                 else:
                     c.execute('INSERT INTO overview (channel_id, channel_name, date, hash) VALUES (?,?,?,?)', (
                         channel_id, channel_name, epg_date, hash))
                     connection.commit()
-                    result = c.execute('SELECT id FROM overview WHERE date=\'{date}\' AND channel_id=\'{channel_id}\''.format(
-                        date=epg_date, channel_id=channel_id)).fetchone()
+                    result = c.execute(
+                        f'SELECT id FROM overview WHERE date=\'{epg_date}\' AND channel_id=\'{channel_id}\'').fetchone()
                     if result != None:
                         id = result[0]
 
@@ -92,7 +92,7 @@ CREATE UNIQUE INDEX unique_index_channel_date on overview (channel_id, date);
                         insert_list.append(
                             (id, channel_id, program['text'], starttime, endtime))
                     except Exception as exception:
-                        print('存储{}时出现异常，{}'.format(program, exception))
+                        print(f'存储{program}时出现异常，{exception}')
 
                 c.executemany(
                     'INSERT INTO programme (overview_id, channel_id, title, start, stop) VALUES (?,?,?,?,?)', insert_list)
@@ -113,8 +113,8 @@ CREATE UNIQUE INDEX unique_index_channel_date on overview (channel_id, date);
         with sqlite3.connect(self.__file) as connection:
             try:
                 c = connection.cursor()
-                result = c.execute('SELECT DISTINCT channel_id FROM overview WHERE date >= \'{start}\' and date < \'{end}\''.format(
-                    start=start, end=end)).fetchall()
+                result = c.execute(
+                    f'SELECT DISTINCT channel_id FROM overview WHERE date >= \'{start}\' and date < \'{end}\'').fetchall()
 
                 if len(result) == 0:
                     pass
@@ -123,22 +123,22 @@ CREATE UNIQUE INDEX unique_index_channel_date on overview (channel_id, date);
 
                 for line in lines:
                     channel_id = line[0]
-                    
-                    result = c.execute('SELECT id,channel_name FROM overview WHERE date >= \'{start}\' and date < \'{end}\' and channel_id = \'{channel_id}\' order by date asc'.format(
-                        start=start_date, end=end__date, channel_id=channel_id)).fetchall()
+
+                    result = c.execute(
+                        f'SELECT id,channel_name FROM overview WHERE date >= \'{start_date}\' and date < \'{end__date}\' and channel_id = \'{channel_id}\' order by date asc').fetchall()
 
                     if len(result) == 0:
                         pass
 
                     channel_name = result[len(result) - 1][1]
-                    channel_id = '{}@iptv'.format(channel_id)
+                    channel_id = f'{channel_id}@iptv'
 
                     channels.append((channel_id, channel_name))
 
                     channel_lines = result
                     for channel_line in channel_lines:
-                        result = c.execute('SELECT title,start,stop FROM programme WHERE overview_id = \'{id}\' order by start asc'.format(
-                            id=channel_line[0])).fetchall()
+                        result = c.execute(
+                            f'SELECT title,start,stop FROM programme WHERE overview_id = \'{channel_line[0]}\' order by start asc').fetchall()
 
                         if len(result) == 0:
                             pass

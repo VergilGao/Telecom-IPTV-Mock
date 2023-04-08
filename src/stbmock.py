@@ -20,8 +20,7 @@ def stb_login(storage: Storage, data_dir: str, udpxy_config: UdpxyConfig, config
     print("第一步，登陆IPTV服务器")
 
     response = requests.get(
-        "http://{server}/EDS/jsp/AuthenticationURL?UserID={user}&Action=Login".format(
-            server=config.server, user=config.userid),
+        f"http://{config.server}/EDS/jsp/AuthenticationURL?UserID={config.userid}&Action=Login",
         headers=headers)
 
     if not response.ok:
@@ -35,8 +34,7 @@ def stb_login(storage: Storage, data_dir: str, udpxy_config: UdpxyConfig, config
 
     for i in range(3):
         response = requests.post(
-            "http://{server}/EPG/jsp/authLoginHWCTC.jsp".format(
-                server=server),
+            f"http://{server}/EPG/jsp/authLoginHWCTC.jsp",
             data={
                 'UserID': config.userid,
                 'VIP': config.vip
@@ -44,7 +42,7 @@ def stb_login(storage: Storage, data_dir: str, udpxy_config: UdpxyConfig, config
             headers=headers)
 
         if not response.ok:
-            print("获取EncryptToken失败, 尝试次数 {0}/3".format(i + 1))
+            print(f"获取EncryptToken失败, 尝试次数 {i + 1}/3")
             if i == 3:
                 return False
             print("等待20秒后再次尝试")
@@ -70,8 +68,7 @@ def stb_login(storage: Storage, data_dir: str, udpxy_config: UdpxyConfig, config
     print("第三步，进行授权认证")
 
     response = requests.post(
-        "http://{server}/EPG/jsp/ValidAuthenticationHWCTC.jsp".format(
-            server=server),
+        f"http://{server}/EPG/jsp/ValidAuthenticationHWCTC.jsp",
         data={
             'UserID': config.userid,
             'Lang': config.lang,
@@ -109,8 +106,7 @@ def stb_login(storage: Storage, data_dir: str, udpxy_config: UdpxyConfig, config
         print("获取cookie失败")
         return False
 
-    cookie: str = '{name}={value}; {name}={value};'.format(
-        name='JSESSIONID', value=cookie_value)
+    cookie: str = f'JSESSIONID={cookie_value}; JSESSIONID={cookie_value};'
 
     headers['cookie'] = cookie
 
@@ -126,8 +122,7 @@ def stb_login(storage: Storage, data_dir: str, udpxy_config: UdpxyConfig, config
     print("第四步，获取频道列表")
 
     response = requests.post(
-        "http://{server}/EPG/jsp/getchannellistHWCTC.jsp".format(
-            server=server),
+        f"http://{server}/EPG/jsp/getchannellistHWCTC.jsp",
         data={
             'conntype': config.conntype,
             'UserToken': user_token,
@@ -147,7 +142,7 @@ def stb_login(storage: Storage, data_dir: str, udpxy_config: UdpxyConfig, config
         r'iRet = Authentication.CTCSetConfig\(\'Channel\',\'ChannelID=.+\);')
     matches: list[str] = regex.findall(response.text)
 
-    print("频道列表获取完成，当前获取到{count}个频道".format(count=len(matches)))
+    print(f"频道列表获取完成，当前获取到{len(matches)}个频道")
 
     re.channel_id = re.compile(r'ChannelID="([0-9]+?)"')
     re.rtsp_url = re.compile(r'ChannelURL=".+?\|(rtsp.+?)"')
@@ -186,35 +181,26 @@ def stb_login(storage: Storage, data_dir: str, udpxy_config: UdpxyConfig, config
                     rtsp_url=rtsp_url
                 ))
 
-    channel_infos.sort(key=lambda i:int(i.user_number))
+    channel_infos.sort(key=lambda i: int(i.user_number))
 
-    print("频道信息提取完成，提取了{count}个频道".format(count=len(channel_infos)))
+    print(f"频道信息提取完成，提取了{len(channel_infos)}个频道")
 
     print("第六步，生成播放列表")
 
     with open(path.join(data_dir, 'iptv.m3u'), 'w', encoding='utf-8') as m3u_file:
-        m3u_file.write('#EXTM3U\n')
+        m3u_file.write('#EXTM3U')
         for channel_info in channel_infos:
-            m3u_file.write('#KODIPROP:inputstream=inputstream.ffmpegdirect\n#EXTINF:0 tvg-id="{channel_id}@iptv" tvg-name="{channel_name}" tvg-chno="{user_number}" tvg-logo="{logo}" group-title="{group_name}" catchup="default" catchup-source="{rtsp}&playseek={{utc:YmdHMS}}-${{end:YmdHMS}}", {channel_name}\n{url}/{proto}/{igmp}\n'.format(
-                channel_id=channel_info.id,
-                user_number=channel_info.user_number,
-                channel_name=channel_info.name,
-                group_name=channel_info.group,
-                logo=channel_info.logo,
-                url=udpxy_config.udpxy_url,
-                proto=udpxy_config.udpxy_protocal,
-                igmp=channel_info.igmp_url,
-                rtsp=channel_info.rtsp_url
-            ))
-
+            m3u_file.write(f'''
+#KODIPROP:inputstream=inputstream.ffmpegdirect
+#EXTINF:0 tvg-id="{channel_info.id}@iptv" tvg-name="{channel_info.name}" tvg-chno="{channel_info.user_number}" tvg-logo="{channel_info.logo}" group-title="{channel_info.group}" catchup="default" catchup-source="{channel_info.rtsp_url}&playseek={{utc:YmdHMS}}-{{end:YmdHMS}}", {channel_info.name}
+{udpxy_config.udpxy_url}/{udpxy_config.udpxy_protocal}/{channel_info.igmp_url}''')
 
     print("播放列表已生成")
 
     print("第七步，获取节目单服务器地址")
 
     response = requests.post(
-        "http://{server}/EPG/jsp/default/en/Category.jsp".format(
-            server=server),
+        f"http://{server}/EPG/jsp/default/en/Category.jsp",
         data={
             'directplay': 0,
             'lastchannelNo': 'null',
@@ -238,7 +224,7 @@ def stb_login(storage: Storage, data_dir: str, udpxy_config: UdpxyConfig, config
     print("第八步，获取频道信息")
 
     response = requests.get(
-        "http://{server}/pub/galaxy_simple/vendor/data/channel.js".format(server=epg_server))
+        f"http://{epg_server}/pub/galaxy_simple/vendor/data/channel.js")
 
     if not response.ok:
         print("获取频道信息失败")
@@ -292,7 +278,7 @@ def stb_login(storage: Storage, data_dir: str, udpxy_config: UdpxyConfig, config
                 except:
                     continue
         except json.JSONDecodeError as e:
-            print("Json 解码失败，原始字符串：{0}".format(e.doc))
+            print(f"Json 解码失败，原始字符串：{e.doc}")
 
     # 兼容未设定timezone或timezone不为东八区的情况
     today = datetime.now(tz=timezone(timedelta(hours=+8)))
@@ -305,31 +291,23 @@ def stb_login(storage: Storage, data_dir: str, udpxy_config: UdpxyConfig, config
             sleep(1)
             date_to_query = (today + timedelta(days=i))
             date_str = date_to_query.strftime('%Y-%m-%d')
-            print("开始获取频道{channel}时间为{date}的节目单".format(
-                channel=channel_name, date=date_str))
-            response = requests.get("http://{server}/pub/json/{date}/{source_id}.js".format(
-                server=epg_server,
-                date=date_str,
-                source_id=source_id
-            ))
+            print(f"开始获取频道{channel_name}时间为{date_str}的节目单")
+            response = requests.get(
+                f"http://{epg_server}/pub/json/{date_str}/{source_id}.js")
 
             if not response.ok:
-                print("获取频道{channel}时间为{date}的节目单失败".format(
-                    channel=channel_name, date=date_str))
+                print(f"获取频道{channel_name}时间为{date_str}的节目单失败")
                 continue
 
             epg = response.text.replace(" ", "")
             match: list[str] = regex.findall(epg)
             if len(match) == 0:
-                print("频道{channel}时间为{date}无节目单数据".format(
-                    channel=channel_name, date=date_str))
+                print(f"频道{channel_name}时间为{date_str}无节目单数据")
                 continue
-            print("开始保存频道{channel}时间为{date}的节目单".format(
-                channel=channel_name, date=date_str))
+            print(f"开始保存频道{channel_name}时间为{date_str}的节目单")
             storage.save(epg_date=date_to_query, channel_id=channel_id,
                          channel_name=channel_name, json_str=match[0])
-            print("频道{channel}时间为{date}的节目单已保存".format(
-                channel=channel_name, date=date_str))
+            print(f"频道{channel_name}时间为{date_str}的节目单已保存")
 
     print("最终步，生成epg电子节目单")
 

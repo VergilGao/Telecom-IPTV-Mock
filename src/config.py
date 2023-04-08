@@ -9,6 +9,7 @@ UdpxyConfig = namedtuple(
     'UdpxyConfig',
     'udpxy_url,udpxy_protocal')
 
+
 class StbConfig:
     server: str
     ua: str
@@ -84,7 +85,7 @@ def read_stb_config(path: str) -> tuple[UdpxyConfig, StbConfig]:
 
     for id, count in repeat.items():
         if count > 1:
-            print('项 {id} 重复'.format(id=id))
+            print(f'项 {id} 重复')
 
     for section in sections:
         id: int = int(section)
