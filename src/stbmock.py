@@ -164,8 +164,7 @@ def stb_login(storage: Storage, data_dir: str, udpxy_config: UdpxyConfig, config
                 channel_name = channel_info.name
                 channel_group = channel_info.group
                 user_number = channel_info.user_number
-                rtsp_url = re.rtsp_url.findall(line)[0].replace(
-                    'PLTV', 'TVOD').replace('zoneoffset=480', 'zoneoffset=0')
+                rtsp_url = re.rtsp_url.findall(line)[0].replace('zoneoffset=480', 'zoneoffset=0')
                 igmp_url = re.igmp_url.findall(line)[0]
                 logo = channel_info.logo
             except:
@@ -192,7 +191,7 @@ def stb_login(storage: Storage, data_dir: str, udpxy_config: UdpxyConfig, config
         for channel_info in channel_infos:
             m3u_file.write(f'''
 #KODIPROP:inputstream=inputstream.ffmpegdirect
-#EXTINF:0 tvg-id="{channel_info.id}@iptv" tvg-name="{channel_info.name}" tvg-chno="{channel_info.user_number}" tvg-logo="{channel_info.logo}" group-title="{channel_info.group}" catchup="default" catchup-source="{channel_info.rtsp_url}&playseek={{utc:YmdHMS}}-{{end:YmdHMS}}", {channel_info.name}
+#EXTINF:0 tvg-id="{channel_info.id}@iptv" tvg-name="{channel_info.name}" tvg-chno="{channel_info.user_number}" tvg-logo="{channel_info.logo}" group-title="{channel_info.group}" catchup="default" catchup-source="{channel_info.rtsp_url}&playseek={{utc:YmdHMS}}-{{utcend:YmdHMS}}", {channel_info.name}
 {udpxy_config.udpxy_url}/{udpxy_config.udpxy_protocal}/{channel_info.igmp_url}''')
 
     print("播放列表已生成")
