@@ -27,5 +27,8 @@ if [ ! -f "${config_file}" ]; then
     exit 1
 fi
 
-echo "程序启动..."
-su-exec ${USER} /app/chips --data=/data --config=/config
+echo "${CRONTAB} su-exec ${USER} /app/chips --data=/data --config=/config > /proc/1/fd/1 2>/proc/1/fd/2" > /etc/crontabs/root
+
+echo "启动 cron daemon ..."
+
+exec crond -n -s -m off
