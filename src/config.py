@@ -3,7 +3,7 @@ from collections import Counter, namedtuple
 
 ChannelConfig = namedtuple(
     'ChannelConfig',
-    'id,user_number,name,group,logo')
+    'id,user_number,name,group,logo,epgid')
 
 UdpxyConfig = namedtuple(
     'UdpxyConfig',
@@ -94,7 +94,8 @@ def read_stb_config(path: str) -> tuple[UdpxyConfig, StbConfig]:
             name=parser.get(section, 'ChannelName').strip(),
             group=parser.get(section, 'ChannelGroup').strip(),
             user_number=parser.get(section, 'UserNumber').strip(),
-            logo=parser.get(section, 'Logo').strip()
+            logo=parser.get(section, 'Logo').strip(),
+            epgid=parser.get(section, 'FromEPGID',fallback='UNKNOWN').strip(),
         )
 
         config.channels[id] = channel

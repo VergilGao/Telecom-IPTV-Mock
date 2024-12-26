@@ -12,7 +12,6 @@ RUN apk --update --no-cache add \
     make \
     cmake \
     upx && \
-    # update pip
     pip install --upgrade pip
 
 ADD requirements.txt /tmp/requirements.txt
@@ -41,9 +40,10 @@ ENV TZ="Asia/Shanghai"
 ENV UID=99
 ENV GID=100
 ENV UMASK=002
-ENV CRONTAB="0 1 * * *"
+ENV CRONTAB="0 5 * * *"
 
 RUN apk add --no-cache --update \
+      tzdata \
       coreutils \
       shadow \
       cronie \
