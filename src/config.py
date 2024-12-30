@@ -50,7 +50,7 @@ def read_stb_config(path: str) -> tuple[UdpxyConfig, StbConfig]:
     sections.remove('iptv')
 
     udpxy_url = parser.get('common', 'udpxy_url', raw=True).strip()
-    udpxy_orotocal = parser.get('common', 'udpxy_protocal', raw=True).strip()
+    udpxy_protocal = parser.get('common', 'udpxy_protocal', raw=True).strip()
 
     config.server = parser.get('iptv', 'Server', raw=True).strip()
     config.ua = parser.get('iptv', 'UA', raw=True).strip()
@@ -100,4 +100,4 @@ def read_stb_config(path: str) -> tuple[UdpxyConfig, StbConfig]:
 
         config.channels[id] = channel
 
-    return UdpxyConfig(udpxy_url=udpxy_url, udpxy_protocal=udpxy_orotocal), config
+    return UdpxyConfig(udpxy_url=udpxy_url, udpxy_protocal=udpxy_protocal), config
