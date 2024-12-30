@@ -87,13 +87,16 @@ def read_stb_config(path: str) -> tuple[UdpxyConfig, StbConfig]:
         if count > 1:
             print(f'项 {id} 重复')
 
+    user_number = 0
     for section in sections:
         id: int = int(section)
+        number: str = parser.get(section, 'UserNumber').strip()
+        user_number = int(number) if number.isdigit() else user_number + 1
         channel: ChannelConfig = ChannelConfig(
             id=id,
             name=parser.get(section, 'ChannelName').strip(),
             group=parser.get(section, 'ChannelGroup').strip(),
-            user_number=parser.get(section, 'UserNumber').strip(),
+            user_number=str(user_number),
             logo=parser.get(section, 'Logo').strip(),
             epgid=parser.get(section, 'FromEPGID',fallback='UNKNOWN').strip(),
         )
