@@ -4,14 +4,12 @@ from time import sleep
 from typing import Tuple
 import requests
 from urllib.parse import urlparse
-from utils import getAuthenticator
+from utils import getAuthenticator, generate_sha256
 from config import StbConfig, UdpxyConfig
 from collections import namedtuple
 from storage import Storage
 from os import path
 import re
-import ast
-
 
 def stb_login(
     storage: Storage,
@@ -213,7 +211,8 @@ def stb_login(
 
     print("第六步，生成播放列表")
 
-    with open(path.join(data_dir, "iptv.m3u"), "w", encoding="utf-8") as m3u_file:
+    m3u_file_path = path.join(data_dir, "iptv.m3u")
+    with open(m3u_file_path, "w", encoding="utf-8") as m3u_file:
         m3u_file.write("#EXTM3U")
         for channel_info in channel_infos:
             m3u_file.write(
@@ -223,9 +222,12 @@ def stb_login(
 {udpxy_config.udpxy_url}/{udpxy_config.udpxy_protocal}/{channel_info.igmp_url}"""
             )
 
+    m3u_hash = generate_sha256(m3u_file_path)
+
+    with open(f"{m3u_file_path}.sha256sums", "w") as file:
+        file.write(m3u_hash)
+
     print("播放列表已生成")
-
-
 
     print("第七步，获取节目单服务器地址")
 
@@ -323,8 +325,15 @@ def stb_login(
 
     print("最终步，生成epg电子节目单")
 
+    epg_file_path = path.join(data_dir, "epg.xml")
+
     storage.epg_generator(
-        path.join(data_dir, "epg.xml"),
+        epg_file_path,
         today + timedelta(days=-7),
         today + timedelta(days=2),
     )
+
+    epg_hash = generate_sha256(epg_file_path)
+
+    with open(f"{epg_file_path}.sha256sums", "w") as file:
+        file.write(epg_hash)

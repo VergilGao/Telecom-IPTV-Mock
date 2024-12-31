@@ -1,6 +1,5 @@
 from Crypto.Cipher import DES
-from hashlib import md5
-
+from hashlib import md5, sha256
 
 def pretty_xml(element, indent, newline, level=0):
     # 判断element是否有子元素
@@ -35,3 +34,15 @@ def getAuthenticator(userid: str, password: str, stbid: str, mac: str, encry_tok
 
     key: bytes = bytes(md5(salty).hexdigest()[:8], encoding='ascii')
     return (DES.new(key, DES.MODE_ECB).encrypt(payload)).hex().upper()
+
+def generate_sha256(file_path):
+    # 创建一个 SHA-256 哈希对象
+    sha256_hash = sha256()
+
+    # 以二进制方式读取文件，并更新哈希对象
+    with open(file_path, "rb") as file:
+        for byte_block in iter(lambda: file.read(4096), b""):
+            sha256_hash.update(byte_block)
+
+    # 返回文件的 SHA-256 摘要
+    return sha256_hash.hexdigest()
