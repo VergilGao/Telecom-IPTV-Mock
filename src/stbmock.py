@@ -18,11 +18,13 @@ def stb_login(
     udpxy_config: UdpxyConfig,
     config: StbConfig,
 ) -> bool:
-    headers: dict = {"User-Agent": config.ua}
+    headers: dict = {"User-Agent": config.ua, "Proxy-Connection": "Keep-Alive"}
+
+    session = requests.Session()
 
     print("第一步，登陆IPTV服务器")
 
-    response = requests.get(
+    response = session.get(
         f"http://{config.server}/EDS/jsp/AuthenticationURL?UserID={config.userid}&Action=Login",
         headers=headers,
     )
@@ -36,32 +38,45 @@ def stb_login(
 
     print(f"登录被重定向至 {server}")
 
+    sleep(1)
+
     print("第二步，获取EncryptToken")
 
     for i in range(3):
-        response = requests.post(
-            f"http://{server}/EPG/jsp/authLoginHWCTC.jsp",
-            data={"UserID": config.userid, "VIP": config.vip},
-            headers=headers,
-        )
-
-        if not response.ok:
-            print(f"获取EncryptToken失败, 尝试次数 {i + 1}/3")
-            if i == 3:
+        try:
+            response = session.post(
+                f"http://{server}/EPG/jsp/authLoginHWCTC.jsp",
+                data={"UserID": config.userid, "VIP": config.vip},
+                headers=headers,
+            )
+        except Exception as e:
+            print(f"发送请求失败, 尝试次数 {i + 1}/3")
+            if i + 1 == 3:
                 return False
             print("等待20秒后再次尝试")
             sleep(20)
+            continue
+
+        if not response.ok:
+            print(f"获取EncryptToken失败, 尝试次数 {i + 1}/3")
+            if i + 1 == 3:
+                return False
+            print("等待20秒后再次尝试")
+            sleep(20)
+            continue
 
         tokenMatch: list = re.findall(
             r'var EncryptToken = "([0-9A-F]{31,32}?)";', response.text
         )
 
-        if len(tokenMatch) == 0:
-            print(f"提取EncryptToken失败, 尝试次数 {i + 1}/3")
-            if i == 3:
-                return False
-            print("等待20秒后再次尝试")
-            sleep(20)
+        if len(tokenMatch) != 0:
+            break
+
+        print(f"提取EncryptToken失败, 尝试次数 {i + 1}/3")
+        if i + 1 == 3:
+            return False
+        print("等待20秒后再次尝试")
+        sleep(20)
 
     encrypt_token: str = tokenMatch[0]
     authenticator: str = getAuthenticator(
@@ -75,7 +90,7 @@ def stb_login(
 
     print("第三步，进行授权认证")
 
-    response = requests.post(
+    response = session.post(
         f"http://{server}/EPG/jsp/ValidAuthenticationHWCTC.jsp",
         data={
             "UserID": config.userid,
@@ -109,16 +124,6 @@ def stb_login(
         print("授权认证失败")
         return False
 
-    cookie_value: str = response.cookies["JSESSIONID"]
-
-    if not cookie_value:
-        print("获取cookie失败")
-        return False
-
-    cookie: str = f"JSESSIONID={cookie_value}; JSESSIONID={cookie_value};"
-
-    headers["cookie"] = cookie
-
     tokenMatch: list = re.findall(
         r'name="UserToken" value="([0-9a-zA-Z]{32}?)"', response.text
     )
@@ -131,7 +136,7 @@ def stb_login(
 
     print("第四步，获取频道列表")
 
-    response = requests.post(
+    response = session.post(
         f"http://{server}/EPG/jsp/getchannellistHWCTC.jsp",
         data={
             "conntype": config.conntype,
@@ -231,7 +236,7 @@ def stb_login(
 
     print("第七步，获取节目单服务器地址")
 
-    response = requests.post(
+    response = session.post(
         f"http://{server}/EPG/jsp/default/en/Category.jsp",
         data={
             "directplay": 0,
@@ -256,7 +261,7 @@ def stb_login(
 
     print("第八步，获取频道信息")
 
-    response = requests.get(
+    response = session.get(
         f"http://{epg_server}/pub/galaxy_simple/vendor/data/channel.js"
     )
 
@@ -301,7 +306,7 @@ def stb_login(
             date_to_query = today + timedelta(days=i)
             date_str = date_to_query.strftime("%Y-%m-%d")
             print(f"开始获取频道{channel_name}时间为{date_str}的节目单")
-            response = requests.get(
+            response = session.get(
                 f"http://{epg_server}/pub/json/{date_str}/{source_id}.js"
             )
 
